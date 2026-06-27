@@ -8,7 +8,8 @@ const DEFAULT_MODEL_TIMELINE = [
   { date: new Date('2024-10-22'), model: 'claude-3-5-sonnet-20241022' },
   { date: new Date('2025-02-29'), model: 'claude-3-7-sonnet-20250219' },
   { date: new Date('2025-05-14'), model: 'claude-sonnet-4-20250514' },
-  { date: new Date('2025-09-29'), model: 'claude-sonnet-4-5-20250929' }
+  { date: new Date('2025-09-29'), model: 'claude-sonnet-4-5-20250929' },
+  { date: new Date('2026-02-17'), model: 'claude-sonnet-4-6' }
 ];
 
 function inferModel(conversation) {

@@ -18,7 +18,10 @@ const MODEL_DISPLAY_NAMES = {
   'claude-opus-4-20250514': 'Claude Opus 4',
   'claude-opus-4-1-20250805': 'Claude Opus 4.1',
   'claude-sonnet-4-5-20250929': 'Claude Sonnet 4.5',
-  'claude-haiku-4-5-20251001': 'Claude Haiku 4.5'
+  'claude-haiku-4-5-20251001': 'Claude Haiku 4.5',
+  'claude-opus-4-5-20251101': 'Claude Opus 4.5',
+  'claude-sonnet-4-6': 'Claude Sonnet 4.6',
+  'claude-opus-4-6': 'Claude Opus 4.6'
 };
 
 // Default model timeline for null models
@@ -29,7 +32,8 @@ const DEFAULT_MODEL_TIMELINE = [
   { date: new Date('2024-10-22'), model: 'claude-3-5-sonnet-20241022' }, // Starting October 22, 2024
   { date: new Date('2025-02-24'), model: 'claude-3-7-sonnet-20250219' }, // Starting February 24, 2025
   { date: new Date('2025-05-22'), model: 'claude-sonnet-4-20250514' }, // Starting May 22, 2025
-  { date: new Date('2025-09-29'), model: 'claude-sonnet-4-5-20250929' } // Starting September 29, 2025
+  { date: new Date('2025-09-29'), model: 'claude-sonnet-4-5-20250929' }, // Starting September 29, 2025
+  { date: new Date('2026-02-17'), model: 'claude-sonnet-4-6' } // Starting February 17, 2026
 ];
 
 // Initialize on page load

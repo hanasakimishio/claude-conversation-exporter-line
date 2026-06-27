@@ -11,8 +11,19 @@ Chrome 扩展：把 Claude.ai 的对话一键导出成本地文件，并集成 *
 
 ## 作者原创设计部分
 
-以下能力 **由本仓库作者独立设计与实现**，并非衍生自上游扩展。
-它们原本存在于作者自研的独立工具 Claude Chat Splitter 中（输入：用户已下载的 Claude 对话 JSON / ZIP；输出：4 种格式文件），本仓库将其能力移植到上游扩展的抓取管道之上。
+本仓库相对于 [上游扩展 02f9fc6 基线](https://github.com/socketteer/Claude-Conversation-Exporter/tree/02f9fc6) 的所有增量功能均由本仓库作者独立设计与实现，分两批加入。
+
+### 批次一：本地 fork 阶段就已加入的能力
+
+| 能力 | 说明 |
+|---|---|
+| **跨筛选保留勾选的批量导出** | `Export Selected` 按钮 + `selectedIds` Set 状态。在浏览页搜索 / 按模型筛选切换时，已勾选的对话保持选中，按钮文案动态显示 `Export Selected (N)` |
+| **行级复选框 + 全选三态** | 每行 `row-select` 复选框；列头 `select-all` 全选框带 indeterminate（部分选中）第三态 |
+| **`updateSelectionUI()` / `exportSelected()`** | 维护选中态显示与跨可见集合的批量打包 |
+
+### 批次二：自研 Claude Chat Splitter 集成进来的能力
+
+以下能力原本存在于作者自研的独立工具 [`claude-chat-splitter.html`](./claude-chat-splitter.html) 中（输入：用户已下载的 Claude 对话 JSON / ZIP；输出：4 种格式文件），本仓库将其移植到上游抓取管道之上。
 
 | 能力 | 说明 |
 |---|---|
@@ -21,9 +32,9 @@ Chrome 扩展：把 Claude.ai 的对话一键导出成本地文件，并集成 *
 | **冗余消息过滤** | `filterMessages` —— 相邻同 sender 自动只保留最后一条，自动折叠重生成/重试稿，可一键关闭 |
 | **自定义双方称呼** | `humanName / assistantName`，应用到 Markdown / Plain Text 的发送者标签 |
 | **4 种格式统一管道** | `convertToLineHTML / convertToMarkdown / convertToText / JSON`，统一 `normalizeOpts` 入参，新增格式只改一处 |
-| **共享 utils.js 重构** | popup / browse / content 三处复用同一份转换逻辑（上游原版是三处复制） |
+| **共享 utils.js + helper 抽取** | popup / browse / content 三处复用同一份转换逻辑（上游原版是三处复制）；`gatherExportOpts / safeFileName / renderForFormat / buildAndDownloadZip` 让 Export All 与 Export Selected 共享 ZIP 管道 |
 
-上游原版保留的能力：JSON / Markdown / Plain Text 三种基础格式、批量打包 ZIP、模型识别、对话浏览搜索、Org ID 配置、模型徽章着色等。
+上游原版保留的能力：JSON / Markdown / Plain Text 三种基础格式、Export All 批量打包 ZIP、模型识别、对话浏览搜索、Org ID 配置、模型徽章着色等。
 
 ---
 

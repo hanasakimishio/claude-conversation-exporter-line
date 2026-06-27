@@ -5,6 +5,15 @@ let orgId = null;
 let currentSort = 'updated_desc';
 const selectedIds = new Set();
 
+// Full-text search state.
+// Index lives in localStorage keyed by conversation uuid; staleness detected via updated_at.
+const FULLTEXT_LS_KEY = 'cce_fulltext_v1';
+let fullTextEnabled = false;        // user-toggled — even if false, cache may still be loaded
+let fullTextIndexing = false;       // background fetch in progress
+let fullTextCancelFlag = false;     // set by Cancel button mid-batch
+const fullTextCache = new Map();    // uuid -> { updated_at, text (lowercased) }
+let lastSearchSnippets = new Map(); // uuid -> snippet HTML, refreshed each filter pass
+
 // Model name mappings
 const MODEL_DISPLAY_NAMES = {
   'claude-3-sonnet-20240229': 'Claude 3 Sonnet',
@@ -38,9 +47,21 @@ const DEFAULT_MODEL_TIMELINE = [
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', async () => {
+  loadFullTextCache();
   await loadOrgId();
   await loadConversations();
   setupEventListeners();
+  // If the user previously had full-text enabled, restore that state and run an
+  // incremental refresh (only fetch conversations whose updated_at moved).
+  if (fullTextCache.size > 0) {
+    fullTextEnabled = true;
+    document.getElementById('fulltextToggle').checked = true;
+    updateFullTextStatus();
+    // Fire-and-forget incremental refresh; don't block initial render.
+    enableFullText({ rebuild: false, silent: true });
+  } else {
+    updateFullTextStatus();
+  }
 });
 
 // Infer model for conversations with null model based on date
@@ -143,24 +164,30 @@ function getModelBadgeClass(model) {
 
 // Apply filters and sorting
 function applyFiltersAndSort() {
-  const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+  const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
   const modelFilter = document.getElementById('modelFilter').value;
-  
-  // Filter conversations
+
+  lastSearchSnippets = new Map();
+
   filteredConversations = allConversations.filter(conv => {
-    const matchesSearch = !searchTerm || 
-      conv.name.toLowerCase().includes(searchTerm) ||
-      (conv.summary && conv.summary.toLowerCase().includes(searchTerm));
-    
+    let matchesSearch = !searchTerm;
+    if (searchTerm) {
+      if (fullTextEnabled) {
+        const r = searchInContent(conv, searchTerm);
+        matchesSearch = r.match;
+        if (r.snippet) lastSearchSnippets.set(conv.uuid, r.snippet);
+      } else {
+        matchesSearch =
+          (conv.name || '').toLowerCase().includes(searchTerm) ||
+          (conv.summary && conv.summary.toLowerCase().includes(searchTerm));
+      }
+    }
+
     const matchesModel = !modelFilter || conv.model === modelFilter;
-    
     return matchesSearch && matchesModel;
   });
-  
-  // Sort conversations
+
   sortConversations();
-  
-  // Update display
   displayConversations();
   updateStats();
 }
@@ -228,6 +255,7 @@ function displayConversations() {
     const modelBadgeClass = getModelBadgeClass(conv.model);
     
     const isChecked = selectedIds.has(conv.uuid) ? 'checked' : '';
+    const snippet = lastSearchSnippets.get(conv.uuid);
     html += `
       <tr data-id="${conv.uuid}">
         <td class="col-select">
@@ -239,6 +267,7 @@ function displayConversations() {
               ${conv.name}
             </a>
           </div>
+          ${snippet ? `<div class="conv-snippet">${snippet}</div>` : ''}
         </td>
         <td class="date">${updatedDate}</td>
         <td class="date">${createdDate}</td>
@@ -603,6 +632,216 @@ function showToast(message, isError = false) {
   }, 3000);
 }
 
+// ---------- Full-text search ----------
+
+function loadFullTextCache() {
+  try {
+    const raw = localStorage.getItem(FULLTEXT_LS_KEY);
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    for (const [uuid, val] of Object.entries(data)) {
+      if (val && typeof val.text === 'string') fullTextCache.set(uuid, val);
+    }
+  } catch (e) {
+    console.warn('[fulltext] failed to load cache', e);
+  }
+}
+
+function saveFullTextCache() {
+  try {
+    const obj = {};
+    for (const [k, v] of fullTextCache) obj[k] = v;
+    localStorage.setItem(FULLTEXT_LS_KEY, JSON.stringify(obj));
+  } catch (e) {
+    // Most likely localStorage quota exceeded — fail loudly so user knows.
+    console.warn('[fulltext] failed to save cache (quota exceeded?)', e);
+    showToast('全文索引保存失败（localStorage 满了？）', true);
+  }
+}
+
+// Flatten a fully-fetched conversation into one lowercased blob for substring search.
+function buildSearchText(fullConv) {
+  const parts = [];
+  parts.push(fullConv.name || fullConv.title || '');
+  if (fullConv.summary) parts.push(fullConv.summary);
+  for (const msg of (fullConv.chat_messages || [])) {
+    if (msg.text) parts.push(msg.text);
+    if (Array.isArray(msg.content)) {
+      for (const block of msg.content) {
+        if (block.text) parts.push(block.text);
+        if (block.thinking) parts.push(block.thinking);
+      }
+    }
+  }
+  return parts.join('\n').toLowerCase();
+}
+
+function updateFullTextStatus(messageOverride, clsOverride) {
+  const statusEl = document.getElementById('fulltextStatus');
+  const rebuildBtn = document.getElementById('fulltextRebuild');
+  const cancelBtn = document.getElementById('fulltextCancel');
+  const toggle = document.getElementById('fulltextToggle');
+  if (!statusEl) return;
+
+  let text, cls;
+  if (messageOverride != null) {
+    text = messageOverride;
+    cls = clsOverride || '';
+  } else if (fullTextIndexing) {
+    text = '索引中…';
+    cls = 'indexing';
+  } else if (!fullTextEnabled) {
+    text = '未启用 · 仅搜索标题';
+    cls = '';
+  } else {
+    text = `已启用 · 覆盖 ${fullTextCache.size} 个对话`;
+    cls = 'ready';
+  }
+
+  statusEl.textContent = text;
+  statusEl.className = 'fulltext-status' + (cls ? ' ' + cls : '');
+
+  if (fullTextIndexing) {
+    if (rebuildBtn) rebuildBtn.hidden = true;
+    if (cancelBtn) cancelBtn.hidden = false;
+  } else {
+    if (rebuildBtn) rebuildBtn.hidden = !fullTextEnabled;
+    if (cancelBtn) cancelBtn.hidden = true;
+  }
+  if (toggle) {
+    toggle.checked = fullTextEnabled;
+    toggle.disabled = fullTextIndexing;
+  }
+}
+
+// Fetch full content for all conversations that need it (new or stale).
+// rebuild=true wipes the cache first; silent=true skips the completion toast.
+async function enableFullText({ rebuild = false, silent = false } = {}) {
+  if (fullTextIndexing) return;
+  if (!orgId) { showToast('Organization ID 未配置', true); return; }
+
+  fullTextEnabled = true;
+  fullTextIndexing = true;
+  fullTextCancelFlag = false;
+
+  if (rebuild) fullTextCache.clear();
+
+  updateFullTextStatus();
+
+  const needFetch = allConversations.filter(conv => {
+    const cached = fullTextCache.get(conv.uuid);
+    if (!cached) return true;
+    return cached.updated_at !== conv.updated_at;
+  });
+
+  // Also prune cache entries for conversations that no longer exist server-side.
+  const liveIds = new Set(allConversations.map(c => c.uuid));
+  for (const uuid of [...fullTextCache.keys()]) {
+    if (!liveIds.has(uuid)) fullTextCache.delete(uuid);
+  }
+
+  if (needFetch.length === 0) {
+    saveFullTextCache();
+    fullTextIndexing = false;
+    updateFullTextStatus();
+    applyFiltersAndSort();
+    return;
+  }
+
+  const total = needFetch.length;
+  let done = 0;
+  let failed = 0;
+  const batchSize = 3;
+
+  for (let i = 0; i < total; i += batchSize) {
+    if (fullTextCancelFlag) break;
+    const batch = needFetch.slice(i, i + batchSize);
+    await Promise.all(batch.map(async conv => {
+      try {
+        const url = `https://claude.ai/api/organizations/${orgId}/chat_conversations/${conv.uuid}?tree=True&rendering_mode=messages&render_all_tools=true`;
+        const r = await fetch(url, { credentials: 'include', headers: { 'Accept': 'application/json' } });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const data = await r.json();
+        fullTextCache.set(conv.uuid, {
+          updated_at: conv.updated_at,
+          text: buildSearchText(data)
+        });
+        done++;
+      } catch (e) {
+        failed++;
+        console.warn(`[fulltext] fetch failed for ${conv.uuid}`, e);
+      }
+    }));
+    updateFullTextStatus(
+      `索引中… ${done + failed} / ${total}${failed > 0 ? `（失败 ${failed}）` : ''}`,
+      'indexing'
+    );
+    // Persist incrementally so a closed tab doesn't lose progress.
+    if ((i / batchSize) % 5 === 0) saveFullTextCache();
+    if (i + batchSize < total && !fullTextCancelFlag) {
+      await new Promise(r => setTimeout(r, 200));
+    }
+  }
+
+  saveFullTextCache();
+  fullTextIndexing = false;
+
+  if (!silent) {
+    if (fullTextCancelFlag) {
+      showToast(`索引已取消（已索引 ${done} 个，剩 ${total - done - failed} 个）`);
+    } else if (failed > 0) {
+      showToast(`全文索引完成 · 成功 ${done} / 失败 ${failed}`);
+    } else {
+      showToast(`全文索引完成 · ${done} 个对话`);
+    }
+  }
+  updateFullTextStatus();
+  applyFiltersAndSort();
+}
+
+function cancelFullText() { fullTextCancelFlag = true; }
+
+function disableFullText() {
+  fullTextEnabled = false;
+  updateFullTextStatus();
+  applyFiltersAndSort();
+}
+
+// Look up a conversation in the cache and pull a snippet around the match.
+// Returns { match: boolean, snippet: string|null } where snippet may contain <mark> tags.
+function searchInContent(conv, query) {
+  if (!query) return { match: true, snippet: null };
+
+  const name = (conv.name || '').toLowerCase();
+  const summary = (conv.summary || '').toLowerCase();
+  if (name.includes(query) || summary.includes(query)) {
+    return { match: true, snippet: null };
+  }
+
+  const cached = fullTextCache.get(conv.uuid);
+  if (!cached || !cached.text.includes(query)) {
+    return { match: false, snippet: null };
+  }
+
+  const idx = cached.text.indexOf(query);
+  const start = Math.max(0, idx - 25);
+  const end = Math.min(cached.text.length, idx + query.length + 40);
+  let snippet = cached.text.slice(start, end);
+
+  // Escape HTML first, then re-highlight the query.
+  snippet = snippet.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const escapedQuery = query
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  snippet = snippet.replace(new RegExp(escapedQuery, 'gi'), m => `<mark>${m}</mark>`);
+
+  if (start > 0) snippet = '…' + snippet;
+  if (end < cached.text.length) snippet = snippet + '…';
+  return { match: true, snippet };
+}
+
+// ---------- /Full-text search ----------
+
 // Setup event listeners
 function setupEventListeners() {
   // Search input
@@ -638,4 +877,17 @@ function setupEventListeners() {
 
   // Export selected button
   document.getElementById('exportSelectedBtn').addEventListener('click', exportSelected);
+
+  // Full-text search toggle
+  document.getElementById('fulltextToggle').addEventListener('change', (e) => {
+    if (e.target.checked) {
+      enableFullText({ rebuild: false });
+    } else {
+      disableFullText();
+    }
+  });
+  document.getElementById('fulltextRebuild').addEventListener('click', () => {
+    enableFullText({ rebuild: true });
+  });
+  document.getElementById('fulltextCancel').addEventListener('click', cancelFullText);
 }

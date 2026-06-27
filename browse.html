@@ -39,10 +39,73 @@
       flex-wrap: wrap;
     }
     
-    .search-box {
+    .search-area {
       flex: 1;
       min-width: 300px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .search-box {
       position: relative;
+    }
+
+    .fulltext-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+      color: #666;
+      padding: 0 6px;
+    }
+    .fulltext-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .fulltext-toggle input { accent-color: #5436DA; cursor: pointer; }
+    .fulltext-status {
+      color: #888;
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .fulltext-status.indexing { color: #5436DA; }
+    .fulltext-status.ready { color: #28a745; }
+    .fulltext-status.error { color: #d32f2f; }
+    .fulltext-action {
+      background: none;
+      border: 1px solid #ddd;
+      color: #5436DA;
+      padding: 2px 10px;
+      border-radius: 4px;
+      font-size: 11px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .fulltext-action:hover { background: #f0eeff; border-color: #5436DA; }
+
+    .conv-snippet {
+      font-size: 11px;
+      color: #5436DA;
+      margin-top: 4px;
+      background: #f0eeff;
+      padding: 3px 8px;
+      border-radius: 4px;
+      display: inline-block;
+      max-width: 100%;
+      word-break: break-word;
+    }
+    .conv-snippet mark {
+      background: #ffe168;
+      color: inherit;
+      padding: 0 2px;
+      border-radius: 2px;
     }
     
     .search-box input {
@@ -394,11 +457,22 @@
   <div class="header">
     <h1>Browse Claude Conversations</h1>
     <div class="controls">
-      <div class="search-box" id="searchBox">
-        <input type="text" id="searchInput" placeholder="Search conversations by name...">
-        <button class="clear-btn" id="clearSearch">✕</button>
+      <div class="search-area">
+        <div class="search-box" id="searchBox">
+          <input type="text" id="searchInput" placeholder="Search by name (enable full-text below to also search inside messages)…">
+          <button class="clear-btn" id="clearSearch">✕</button>
+        </div>
+        <div class="fulltext-bar" id="fulltextBar">
+          <label class="fulltext-toggle">
+            <input type="checkbox" id="fulltextToggle">
+            <span>全文搜索</span>
+          </label>
+          <span class="fulltext-status" id="fulltextStatus">未启用 · 仅搜索标题</span>
+          <button class="fulltext-action" id="fulltextRebuild" hidden>重建索引</button>
+          <button class="fulltext-action" id="fulltextCancel" hidden>取消</button>
+        </div>
       </div>
-      
+
       <div class="filter-group">
         <label>Model:</label>
         <select id="modelFilter">

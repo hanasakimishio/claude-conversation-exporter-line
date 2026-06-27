@@ -254,7 +254,69 @@
       cursor: pointer;
     }
     .checkbox-label input { accent-color: var(--accent); }
-    
+
+    /* Inline help tooltip — small circle next to a control, shows a black popover on hover/focus */
+    .info-tip {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 14px;
+      height: 14px;
+      margin-left: 4px;
+      font-size: 10px;
+      font-weight: 600;
+      font-style: italic;
+      font-family: 'Georgia', serif;
+      color: var(--text-muted);
+      background: var(--border-light);
+      border-radius: 50%;
+      cursor: help;
+      user-select: none;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .info-tip:hover, .info-tip:focus {
+      background: var(--accent);
+      color: white;
+      outline: none;
+    }
+    .info-tip-content {
+      position: absolute;
+      bottom: calc(100% + 10px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1a1a1a;
+      color: white;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 0.78rem;
+      line-height: 1.6;
+      width: 260px;
+      font-weight: 400;
+      font-style: normal;
+      font-family: inherit;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.15s;
+      z-index: 2000;
+      white-space: normal;
+      text-align: left;
+    }
+    .info-tip-content::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 6px solid transparent;
+      border-top-color: #1a1a1a;
+    }
+    .info-tip:hover .info-tip-content,
+    .info-tip:focus .info-tip-content {
+      opacity: 1;
+    }
+
     .preview-header {
       display: flex;
       justify-content: space-between;
@@ -443,6 +505,7 @@
               </label>
               <label class="checkbox-label">
                 <input type="checkbox" id="includeRetries"> 包含冗余消息
+                <span class="info-tip" tabindex="0" role="tooltip" aria-label="冗余消息说明">i<span class="info-tip-content">相邻同发送者的多条消息（如重新生成、长输出分段、对话编辑残留）默认折叠为最后一条，让导出更干净。勾选则保留所有版本。</span></span>
               </label>
             </div>
           </div>

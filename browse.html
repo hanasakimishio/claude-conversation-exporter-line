@@ -509,6 +509,7 @@
         <label>
           <input type="checkbox" id="includeMetadata" checked>
           Metadata
+          <span class="info-tip" tabindex="0" role="tooltip" aria-label="Metadata 说明">i<span class="info-tip-content">在 Markdown / Plain Text 顶部加入创建时间、更新时间、模型；并在每条消息下方加发送时间戳。LINE HTML 不受此影响（时间戳与日期分割条默认显示）。JSON 总是包含原始全部字段。</span></span>
         </label>
         <label>
           <input type="checkbox" id="includeThinking">
@@ -517,6 +518,7 @@
         <label>
           <input type="checkbox" id="includeRetries">
           冗余消息
+          <span class="info-tip" tabindex="0" role="tooltip" aria-label="冗余消息说明">i<span class="info-tip-content">相邻同发送者的多条消息（如重新生成、长输出分段、对话编辑残留）默认折叠为最后一条，让导出更干净。勾选则保留所有版本。</span></span>
         </label>
         <label>
           我:
@@ -580,6 +582,69 @@
       border: 1px solid #ccc;
       border-radius: 3px;
       font-size: 13px;
+    }
+
+    /* Inline help tooltip — small circle next to a control, shows a black popover on hover/focus */
+    .info-tip {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 14px;
+      height: 14px;
+      margin-left: 3px;
+      font-size: 10px;
+      font-weight: 600;
+      font-style: italic;
+      font-family: 'Georgia', serif;
+      color: #888;
+      background: #e8e6e0;
+      border-radius: 50%;
+      cursor: help;
+      user-select: none;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .info-tip:hover, .info-tip:focus {
+      background: #5436DA;
+      color: white;
+      outline: none;
+    }
+    .info-tip-content {
+      position: absolute;
+      bottom: calc(100% + 10px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1a1a1a;
+      color: white;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 12px;
+      line-height: 1.6;
+      width: 260px;
+      max-width: 260px;
+      font-weight: 400;
+      font-style: normal;
+      font-family: inherit;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.15s;
+      z-index: 2000;
+      white-space: normal;
+      text-align: left;
+    }
+    .info-tip-content::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 6px solid transparent;
+      border-top-color: #1a1a1a;
+    }
+    .info-tip:hover .info-tip-content,
+    .info-tip:focus .info-tip-content {
+      opacity: 1;
     }
   </style>
   

@@ -8,7 +8,7 @@
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             padding: 40px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #E0876B 0%, #BD5836 100%);
             min-height: 100vh;
         }
         .container {
@@ -48,7 +48,7 @@
         }
         .icon-card h3 {
             margin: 15px 0 10px 0;
-            color: #5436DA;
+            color: #D97757;
         }
         .icon-card p {
             color: #666;
@@ -69,7 +69,7 @@
             margin-bottom: 30px;
         }
         button {
-            background: #5436DA;
+            background: #D97757;
             color: white;
             border: none;
             padding: 12px 30px;
@@ -80,9 +80,9 @@
             transition: all 0.3s;
         }
         button:hover {
-            background: #4329B8;
+            background: #C15F3C;
             transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(84, 54, 218, 0.3);
+            box-shadow: 0 10px 20px rgba(217, 119, 87, 0.3);
         }
         .design-selector {
             margin-bottom: 20px;
@@ -95,7 +95,7 @@
             padding: 10px 20px;
         }
         .design-btn.active {
-            background: #5436DA;
+            background: #D97757;
             color: white;
         }
         .popup-preview {
@@ -105,7 +105,7 @@
             border-radius: 10px;
         }
         .popup-preview h2 {
-            color: #5436DA;
+            color: #D97757;
             margin-bottom: 20px;
         }
         #popupCanvas {
@@ -179,8 +179,8 @@
             
             // Background gradient
             const gradient = ctx.createLinearGradient(0, 0, size, size);
-            gradient.addColorStop(0, '#5436DA');
-            gradient.addColorStop(1, '#7B5FE8');
+            gradient.addColorStop(0, '#D97757');
+            gradient.addColorStop(1, '#E58F71');
             ctx.fillStyle = gradient;
             ctx.fillRect(0, 0, size, size);
             
@@ -226,8 +226,8 @@
             
             // Background
             const gradient = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
-            gradient.addColorStop(0, '#6B5FE8');
-            gradient.addColorStop(1, '#5436DA');
+            gradient.addColorStop(0, '#D97757');
+            gradient.addColorStop(1, '#D97757');
             ctx.fillStyle = gradient;
             ctx.fillRect(0, 0, size, size);
             
@@ -256,7 +256,7 @@
             ctx.fill();
             
             // Export arrow overlay
-            ctx.strokeStyle = '#5436DA';
+            ctx.strokeStyle = '#D97757';
             ctx.lineWidth = 3 * scale;
             const arrowX = size * 0.7;
             const arrowY = size * 0.5;
@@ -277,9 +277,9 @@
             
             // Flowing gradient background
             const gradient = ctx.createLinearGradient(0, 0, size, size);
-            gradient.addColorStop(0, '#667eea');
-            gradient.addColorStop(0.5, '#5436DA');
-            gradient.addColorStop(1, '#764ba2');
+            gradient.addColorStop(0, '#E0876B');
+            gradient.addColorStop(0.5, '#D97757');
+            gradient.addColorStop(1, '#BD5836');
             ctx.fillStyle = gradient;
             ctx.fillRect(0, 0, size, size);
             
@@ -312,7 +312,7 @@
             ctx.clearRect(0, 0, size, size);
             
             // Simple white background
-            ctx.fillStyle = '#5436DA';
+            ctx.fillStyle = '#D97757';
             ctx.fillRect(0, 0, size, size);
             
             // Minimalist export symbol
@@ -369,9 +369,9 @@
             
             // Create gradient background
             const gradient = ctx.createLinearGradient(0, 0, 600, 150);
-            gradient.addColorStop(0, '#667eea');
-            gradient.addColorStop(0.5, '#5436DA');
-            gradient.addColorStop(1, '#764ba2');
+            gradient.addColorStop(0, '#E0876B');
+            gradient.addColorStop(0.5, '#D97757');
+            gradient.addColorStop(1, '#BD5836');
             ctx.fillStyle = gradient;
             ctx.fillRect(0, 0, 600, 150);
             

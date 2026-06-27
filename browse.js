@@ -299,7 +299,7 @@ function displayConversations() {
               Export
             </button>
             <button class="btn-small btn-view" data-id="${conv.uuid}">
-              View
+              Link
             </button>
           </div>
         </td>

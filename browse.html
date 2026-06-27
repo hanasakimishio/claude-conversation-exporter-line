@@ -770,12 +770,16 @@
     }
     .preview-error { color: #d32f2f; }
     .preview-iframe {
+      position: absolute;
+      inset: 0;
       width: 100%; height: 100%;
       border: none;
       background: white;
       display: block;
     }
     .preview-text {
+      position: absolute;
+      inset: 0;
       width: 100%; height: 100%;
       margin: 0; padding: 20px;
       background: white;
@@ -840,7 +844,7 @@
         <main class="preview-area">
           <div class="preview-loading" id="previewLoading">加载对话内容…</div>
           <div class="preview-error" id="previewError" hidden></div>
-          <iframe class="preview-iframe" id="previewIframe" sandbox="allow-same-origin" hidden></iframe>
+          <iframe class="preview-iframe" id="previewIframe" hidden></iframe>
           <pre class="preview-text" id="previewText" hidden></pre>
         </main>
       </div>

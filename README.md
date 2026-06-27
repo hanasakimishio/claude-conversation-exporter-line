@@ -27,6 +27,28 @@ Chrome 扩展：把 Claude.ai 的对话一键导出成本地文件，并集成 *
 
 ---
 
+## 两种用法（仓库内两个工具同梱）
+
+本仓库同时提供两种使用路径，按你手头有的数据来选：
+
+### 用法 A：Chrome 扩展（实时抓 claude.ai）
+适合：登录着 Claude.ai、想直接从网页一键导出。
+入口：装扩展 → popup 或 Browse 页 → 选格式 → 导出。
+依赖：你的 claude.ai 登录态 + Organization ID。
+
+### 用法 B：独立 splitter（[`claude-chat-splitter.html`](./claude-chat-splitter.html)）
+适合：**已经从 Claude 官方途径导出了 `conversations.json`** —— 例如：
+- `https://claude.ai/settings/data-privacy-controls` → Export data → 邮件收到的 ZIP
+- 朋友/合作方发给你的 conversation 备份文件
+- Chrome 扩展批量导出的 JSON 文件
+
+打开方式：双击仓库根目录里的 `claude-chat-splitter.html`（浏览器直接打开，无需任何安装）。
+能做的事：上传一个 / 多个 / ZIP 文件 → 自动拆分为独立对话 → 列表筛选 + 全文搜索 + 重命名 → 选 4 种格式之一 → 单条导出或批量打包 ZIP。
+
+**关键特性**：splitter 完全本地运行（无任何网络请求、不调用任何 API、不需要 Cookie），把官方导出的一坨 JSON 转成可直接收藏的 LINE 气泡 HTML / Markdown / Plain Text。这正是本仓库 LINE 渲染层 + 高级配置最初被设计实现的原生载体。
+
+---
+
 ## 安装（Chrome 开发者模式加载未打包扩展）
 
 1. `git clone https://github.com/hanasakimishio/claude-conversation-exporter-line.git`
@@ -102,7 +124,7 @@ LINE 风格渲染与高级配置层的设计与实现由本仓库作者独立完
 1. 本仓库下架（或转 private）
 2. 改为 **仅发布独立的 Claude Chat Splitter 工具**
 
-该独立工具**完全不包含上游扩展的任何代码**，仅处理用户已经下载到本地的 Claude 对话 JSON / ZIP 文件，零代码侵权风险，并保留全部原创设计的 LINE 渲染与配置能力。
+该独立工具即本仓库内的 [`claude-chat-splitter.html`](./claude-chat-splitter.html) —— **完全不包含上游扩展的任何代码**，仅处理用户已经下载到本地的 Claude 对话 JSON / ZIP 文件，零代码侵权风险，并保留全部原创设计的 LINE 渲染与配置能力。
 
 ### 推荐的更稳做法
 

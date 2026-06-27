@@ -14,6 +14,20 @@ let fullTextCancelFlag = false;     // set by Cancel button mid-batch
 const fullTextCache = new Map();    // uuid -> { updated_at, text (lowercased) }
 let lastSearchSnippets = new Map(); // uuid -> snippet HTML, refreshed each filter pass
 
+// Preview modal state. conv is the fully-fetched API object (with chat_messages);
+// every config change re-renders against this same object so it's instant once loaded.
+const previewState = {
+  uuid: null,
+  name: '',
+  conv: null,
+  format: 'line',
+  includeMetadata: true,
+  includeThinking: false,
+  includeRetries: false,
+  humanName: '我',
+  assistantName: 'Claude'
+};
+
 // Model name mappings
 const MODEL_DISPLAY_NAMES = {
   'claude-3-sonnet-20240229': 'Claude 3 Sonnet',
@@ -278,6 +292,9 @@ function displayConversations() {
         </td>
         <td>
           <div class="actions">
+            <button class="btn-small btn-preview" data-id="${conv.uuid}" data-name="${conv.name}">
+              Preview
+            </button>
             <button class="btn-small btn-export" data-id="${conv.uuid}" data-name="${conv.name}">
               Export
             </button>
@@ -297,6 +314,13 @@ function displayConversations() {
   
   tableContent.innerHTML = html;
   
+  // Add preview button listeners
+  document.querySelectorAll('.btn-preview').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      openPreview(e.target.dataset.id, e.target.dataset.name);
+    });
+  });
+
   // Add export button listeners
   document.querySelectorAll('.btn-export').forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -842,6 +866,117 @@ function searchInContent(conv, query) {
 
 // ---------- /Full-text search ----------
 
+// ---------- Preview modal ----------
+
+// Open preview for a single conversation: seed config from current export settings,
+// fetch full content, then render. Subsequent config tweaks just re-render — no re-fetch.
+async function openPreview(uuid, name) {
+  if (!orgId) { showToast('Organization ID 未配置', true); return; }
+
+  // Seed previewState from the page's current export defaults so the first render
+  // matches what "Export" on this row would produce.
+  previewState.uuid = uuid;
+  previewState.name = name || uuid;
+  previewState.conv = null;
+  previewState.format = document.getElementById('exportFormat').value;
+  previewState.includeMetadata = document.getElementById('includeMetadata').checked;
+  previewState.includeThinking = document.getElementById('includeThinking').checked;
+  previewState.includeRetries = document.getElementById('includeRetries').checked;
+  previewState.humanName = (document.getElementById('humanName').value || '我').trim() || '我';
+  previewState.assistantName = (document.getElementById('assistantName').value || 'Claude').trim() || 'Claude';
+
+  // Push state into the modal's own controls
+  document.getElementById('previewFormat').value = previewState.format;
+  document.getElementById('previewMetadata').checked = previewState.includeMetadata;
+  document.getElementById('previewThinking').checked = previewState.includeThinking;
+  document.getElementById('previewRetries').checked = previewState.includeRetries;
+  document.getElementById('previewHumanName').value = previewState.humanName;
+  document.getElementById('previewAssistantName').value = previewState.assistantName;
+
+  document.getElementById('previewModalTitle').textContent = `预览 · ${name}`;
+  document.getElementById('previewLoading').hidden = false;
+  document.getElementById('previewLoading').textContent = '加载对话内容…';
+  document.getElementById('previewError').hidden = true;
+  document.getElementById('previewIframe').hidden = true;
+  document.getElementById('previewText').hidden = true;
+  document.getElementById('previewDownloadBtn').disabled = true;
+  document.getElementById('previewModal').hidden = false;
+
+  try {
+    const url = `https://claude.ai/api/organizations/${orgId}/chat_conversations/${uuid}?tree=True&rendering_mode=messages&render_all_tools=true`;
+    const r = await fetch(url, { credentials: 'include', headers: { 'Accept': 'application/json' } });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const data = await r.json();
+    data.model = inferModel(data);
+    previewState.conv = data;
+    document.getElementById('previewLoading').hidden = true;
+    document.getElementById('previewDownloadBtn').disabled = false;
+    renderPreviewContent();
+  } catch (e) {
+    document.getElementById('previewLoading').hidden = true;
+    const errEl = document.getElementById('previewError');
+    errEl.textContent = `加载失败：${e.message}`;
+    errEl.hidden = false;
+  }
+}
+
+// Re-render the right pane against current previewState. Cheap; runs on every config change.
+function renderPreviewContent() {
+  if (!previewState.conv) return;
+  const opts = {
+    humanName: previewState.humanName,
+    assistantName: previewState.assistantName,
+    includeMetadata: previewState.includeMetadata,
+    includeThinking: previewState.includeThinking,
+    includeRetries: previewState.includeRetries
+  };
+  const iframe = document.getElementById('previewIframe');
+  const pre = document.getElementById('previewText');
+
+  if (previewState.format === 'line') {
+    iframe.srcdoc = convertToLineHTML(previewState.conv, opts);
+    iframe.hidden = false;
+    pre.hidden = true;
+  } else {
+    let txt;
+    switch (previewState.format) {
+      case 'markdown': txt = convertToMarkdown(previewState.conv, opts); break;
+      case 'text': txt = convertToText(previewState.conv, opts); break;
+      default: txt = JSON.stringify(previewState.conv, null, 2);
+    }
+    pre.textContent = txt;
+    pre.hidden = false;
+    iframe.hidden = true;
+  }
+}
+
+function closePreview() {
+  document.getElementById('previewModal').hidden = true;
+  // Release the rendered HTML / text to free memory; the next open will rebuild.
+  document.getElementById('previewIframe').srcdoc = '';
+  document.getElementById('previewText').textContent = '';
+  previewState.conv = null;
+  previewState.uuid = null;
+}
+
+// Reuse the same converter path as Export — guarantees what user sees in preview matches the file.
+function downloadFromPreview() {
+  if (!previewState.conv) return;
+  const opts = {
+    humanName: previewState.humanName,
+    assistantName: previewState.assistantName,
+    includeMetadata: previewState.includeMetadata,
+    includeThinking: previewState.includeThinking,
+    includeRetries: previewState.includeRetries
+  };
+  const { content, ext, mime } = renderForFormat(previewState.conv, previewState.format, opts);
+  const filename = `claude-${safeFileName(previewState.name, previewState.uuid)}.${ext}`;
+  downloadFile(content, filename, mime);
+  showToast(`已下载：${filename}`);
+}
+
+// ---------- /Preview modal ----------
+
 // Setup event listeners
 function setupEventListeners() {
   // Search input
@@ -890,4 +1025,42 @@ function setupEventListeners() {
     enableFullText({ rebuild: true });
   });
   document.getElementById('fulltextCancel').addEventListener('click', cancelFullText);
+
+  // Preview modal — each control just mutates previewState and re-renders.
+  document.getElementById('previewFormat').addEventListener('change', (e) => {
+    previewState.format = e.target.value;
+    renderPreviewContent();
+  });
+  document.getElementById('previewMetadata').addEventListener('change', (e) => {
+    previewState.includeMetadata = e.target.checked;
+    renderPreviewContent();
+  });
+  document.getElementById('previewThinking').addEventListener('change', (e) => {
+    previewState.includeThinking = e.target.checked;
+    renderPreviewContent();
+  });
+  document.getElementById('previewRetries').addEventListener('change', (e) => {
+    previewState.includeRetries = e.target.checked;
+    renderPreviewContent();
+  });
+  document.getElementById('previewHumanName').addEventListener('input', (e) => {
+    previewState.humanName = (e.target.value || '我').trim() || '我';
+    renderPreviewContent();
+  });
+  document.getElementById('previewAssistantName').addEventListener('input', (e) => {
+    previewState.assistantName = (e.target.value || 'Claude').trim() || 'Claude';
+    renderPreviewContent();
+  });
+  document.getElementById('previewModalClose').addEventListener('click', closePreview);
+  document.getElementById('previewDownloadBtn').addEventListener('click', downloadFromPreview);
+  // Click outside the modal panel (on the backdrop itself) closes it.
+  document.getElementById('previewModal').addEventListener('click', (e) => {
+    if (e.target.id === 'previewModal') closePreview();
+  });
+  // Esc closes the modal.
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !document.getElementById('previewModal').hidden) {
+      closePreview();
+    }
+  });
 }

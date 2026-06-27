@@ -1,24 +1,29 @@
-# Claude Conversation Exporter — LINE bubble fork
+# Claude Conversation Exporter — LINE bubble integration
 
-Chrome 扩展：把 Claude.ai 的对话一键导出成本地文件，并新增 **LINE 聊天气泡风格** 的 HTML 视图（fork 新增）。
+Chrome 扩展：把 Claude.ai 的对话一键导出成本地文件，并集成 **LINE 聊天气泡风格** 的 HTML 视图与若干高级配置。
 
-> Fork of [socketteer/Claude-Conversation-Exporter](https://github.com/socketteer/Claude-Conversation-Exporter).
-> 原版能力完全保留（JSON / Markdown / Plain Text 导出、批量打包 ZIP、模型识别、浏览搜索等）；本 fork 在原作基础上新增了 LINE 风格的气泡 HTML 视图与若干配置项。
+> 本仓库 = 上游扩展（API 直连抓取与浏览管道）+ 作者自研 splitter（LINE 渲染与配置层）的合并版本。
+>
+> - **上游扩展**：[socketteer/Claude-Conversation-Exporter](https://github.com/socketteer/Claude-Conversation-Exporter) — 提供 claude.ai API 抓取、批量浏览、ZIP 打包、模型识别等
+> - **集成层**：作者自研的 Claude Chat Splitter 工具 — 提供 LINE 风格 HTML 渲染、思考链处理、冗余过滤、自定义称呼、4 种格式统一管道
 
 ---
 
-## Fork 新增能力
+## 作者原创设计部分
+
+以下能力 **由本仓库作者独立设计与实现**，并非衍生自上游扩展。
+它们原本存在于作者自研的独立工具 Claude Chat Splitter 中（输入：用户已下载的 Claude 对话 JSON / ZIP；输出：4 种格式文件），本仓库将其能力移植到上游扩展的抓取管道之上。
 
 | 能力 | 说明 |
 |---|---|
-| LINE 风格 HTML 导出 | 宽气泡（max-width 92%）、容器 1000px、日期分割条、消息时间戳；双击 `.html` 浏览器直接读 |
-| Claude 思考链支持 | 自动识别 extended thinking 块，渲染为可折叠 `<details>`（默认关闭，可勾选开启） |
-| 冗余消息过滤 | 默认折叠相邻同 sender 的重生成/重试稿，可一键关掉 |
-| 自定义双方称呼 | popup / browse 内可改「我 / 对方」显示名，应用到 Markdown / Plain Text |
-| LINE 设为新默认 | 格式下拉将 LINE (HTML) 设为首项与默认选项 |
-| 共享 utils.js 重构 | popup / browse / content 三处共用同一份转换逻辑（`convertToLineHTML` / `convertToMarkdown` / `convertToText`），新增格式只改一处 |
+| **LINE 风格 HTML 渲染** | 宽气泡（max-width 92%）、容器 1000px、日期分割条（含日文星期）、消息时间戳；双击 `.html` 浏览器直接读 |
+| **Claude 思考链处理** | 识别 `content[].type='thinking'` 块，渲染为可折叠 `<details>`；Markdown 同样折叠；Plain Text 用「【思考】」标记 |
+| **冗余消息过滤** | `filterMessages` —— 相邻同 sender 自动只保留最后一条，自动折叠重生成/重试稿，可一键关闭 |
+| **自定义双方称呼** | `humanName / assistantName`，应用到 Markdown / Plain Text 的发送者标签 |
+| **4 种格式统一管道** | `convertToLineHTML / convertToMarkdown / convertToText / JSON`，统一 `normalizeOpts` 入参，新增格式只改一处 |
+| **共享 utils.js 重构** | popup / browse / content 三处复用同一份转换逻辑（上游原版是三处复制） |
 
-详细文件改动见 commit history。
+上游原版保留的能力：JSON / Markdown / Plain Text 三种基础格式、批量打包 ZIP、模型识别、对话浏览搜索、Org ID 配置、模型徽章着色等。
 
 ---
 
@@ -47,7 +52,7 @@ Chrome 扩展：把 Claude.ai 的对话一键导出成本地文件，并新增 *
 ### 浏览与批量导出
 点「Browse All Conversations」 → 列表内搜索 / 按模型筛选 → 勾选目标行 → 「Export Selected」（或「Export All」全量打包 ZIP）
 
-### 高级选项（fork 新增）
+### 高级选项
 - **包含思考链**：导出 Claude extended thinking 内容
 - **包含冗余消息**：保留同 sender 的连续重生成稿（默认折叠）
 - **我 / 对方**：自定义 Markdown / Plain Text 中的发送者名
@@ -76,27 +81,36 @@ Chrome 扩展：把 Claude.ai 的对话一键导出成本地文件，并新增 *
 
 ## 致谢
 
-- **原作者**：[socketteer](https://github.com/socketteer) — Claude Opus 4.1 协同开发
-- **原仓库**：https://github.com/socketteer/Claude-Conversation-Exporter
+- **上游扩展作者**：[socketteer](https://github.com/socketteer) — 与 Claude Opus 4.1 协同开发，提供 claude.ai API 直连与浏览管道
+- **上游仓库**：https://github.com/socketteer/Claude-Conversation-Exporter
 - **ZIP 库**：[JSZip](https://stuk.github.io/jszip/)
 
-本 fork 在原作基础上新增 LINE 风格 HTML 视图与配置项，向原作者致敬。如果你觉得这个扩展有用，**请也去给原仓库点 Star**。
+LINE 风格渲染与高级配置层的设计与实现由本仓库作者独立完成，并非衍生自上游。
 
 ---
 
 ## License 与法律状态
 
-> ⚠️ **重要：原仓库未声明 license。** README 占位写「[Add your chosen license here]」，无 LICENSE 文件 —— 按 GitHub 默认，原作品 = all rights reserved by socketteer。
->
-> 本 fork 仅供 **个人使用与学习交流**，不主张任何分发权利。
->
-> 如原作者 [@socketteer](https://github.com/socketteer) 对此 fork 的存在有任何异议，请直接在本仓库提 issue，本 fork 将立即响应（下架 / 转 private / 改为 PR）。
->
-> 推荐的更优做法：将 LINE 强化以 PR 形式回馈给原仓库，由原作者决定是否合入。
+> ⚠️ **上游仓库未声明 license**（README 占位写「[Add your chosen license here]」，无 LICENSE 文件） —— 按 GitHub 默认 = all rights reserved by socketteer。
+
+本仓库仅供 **个人使用与学习交流**，不主张任何分发权利。
+
+### 如原作者有异议
+
+**若 [@socketteer](https://github.com/socketteer) 对本仓库的存在有任何异议**（issue / 邮件均可），本仓库将立即响应：
+
+1. 本仓库下架（或转 private）
+2. 改为 **仅发布独立的 Claude Chat Splitter 工具**
+
+该独立工具**完全不包含上游扩展的任何代码**，仅处理用户已经下载到本地的 Claude 对话 JSON / ZIP 文件，零代码侵权风险，并保留全部原创设计的 LINE 渲染与配置能力。
+
+### 推荐的更稳做法
+
+将 LINE 渲染层与配置层以 PR 形式提交回上游，由 [@socketteer](https://github.com/socketteer) 决定是否合入 —— 本仓库作者愿意配合任何合规化要求。
 
 ---
 
 ## Disclaimer
 
-Not officially affiliated with Anthropic, Claude.ai, or the original author.
-Community fork released for personal use and learning purposes only.
+Not officially affiliated with Anthropic, Claude.ai, or the upstream extension author.
+Community integration released for personal use and learning purposes only.

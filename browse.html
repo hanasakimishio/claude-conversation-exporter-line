@@ -34,20 +34,19 @@
     
     .controls {
       display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .controls-row {
+      display: flex;
       gap: 15px;
       align-items: center;
       flex-wrap: wrap;
     }
-    
-    .search-area {
-      flex: 1;
-      min-width: 300px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
 
     .search-box {
+      flex: 1;
+      min-width: 300px;
       position: relative;
     }
 
@@ -464,49 +463,56 @@
   <div class="header">
     <h1>Browse Claude Conversations</h1>
     <div class="controls">
-      <div class="search-area">
+      <!-- Row 1: search box + filters + sort + stats -->
+      <div class="controls-row">
         <div class="search-box" id="searchBox">
-          <input type="text" id="searchInput" placeholder="Search by name (enable full-text below to also search inside messages)…">
+          <input type="text" id="searchInput" placeholder="搜索对话标题…">
           <button class="clear-btn" id="clearSearch">✕</button>
         </div>
-        <div class="fulltext-bar" id="fulltextBar">
-          <label class="fulltext-toggle">
-            <input type="checkbox" id="fulltextToggle">
-            <span>全文搜索</span>
-          </label>
-          <span class="fulltext-status" id="fulltextStatus">未启用 · 仅搜索标题</span>
-          <button class="fulltext-action" id="fulltextRebuild" hidden>重建索引</button>
-          <button class="fulltext-action" id="fulltextCancel" hidden>取消</button>
+
+        <div class="filter-group">
+          <label>Model:</label>
+          <select id="modelFilter">
+            <option value="">All Models</option>
+          </select>
         </div>
-        <div class="fulltext-hint">
-          需要按对话内容搜索时，勾选「全文搜索」预载所有对话（首次较慢，结果会缓存到本地）；未勾选时只搜索对话标题。
+
+        <div class="filter-group">
+          <label>Sort by:</label>
+          <select id="sortBy">
+            <option value="updated_desc">Recently Updated</option>
+            <option value="updated_asc">Oldest Updated</option>
+            <option value="created_desc">Recently Created</option>
+            <option value="created_asc">Oldest Created</option>
+            <option value="name_asc">Name (A-Z)</option>
+            <option value="name_desc">Name (Z-A)</option>
+          </select>
+        </div>
+
+        <div class="stats" id="stats">
+          Loading...
         </div>
       </div>
 
-      <div class="filter-group">
-        <label>Model:</label>
-        <select id="modelFilter">
-          <option value="">All Models</option>
-        </select>
+      <!-- Row 2: full-text toggle + status + actions -->
+      <div class="fulltext-bar" id="fulltextBar">
+        <label class="fulltext-toggle">
+          <input type="checkbox" id="fulltextToggle">
+          <span>全文搜索</span>
+        </label>
+        <span class="fulltext-status" id="fulltextStatus">未启用 · 仅搜索标题</span>
+        <button class="fulltext-action" id="fulltextRebuild" hidden>重建索引</button>
+        <button class="fulltext-action" id="fulltextCancel" hidden>取消</button>
       </div>
-      
-      <div class="filter-group">
-        <label>Sort by:</label>
-        <select id="sortBy">
-          <option value="updated_desc">Recently Updated</option>
-          <option value="updated_asc">Oldest Updated</option>
-          <option value="created_desc">Recently Created</option>
-          <option value="created_asc">Oldest Created</option>
-          <option value="name_asc">Name (A-Z)</option>
-          <option value="name_desc">Name (Z-A)</option>
-        </select>
+
+      <!-- Row 3: small hint for full-text -->
+      <div class="fulltext-hint">
+        需要按对话内容搜索时，勾选「全文搜索」预载所有对话（首次较慢，结果会缓存到本地）；未勾选时只搜索对话标题。
       </div>
-      
-      <div class="stats" id="stats">
-        Loading...
-      </div>
-      
-      <div class="export-settings">
+
+      <!-- Row 4: export settings + action buttons -->
+      <div class="controls-row">
+        <div class="export-settings">
         <label>
           Format:
           <select id="exportFormat">
@@ -547,9 +553,10 @@
       <button class="export-all-btn" id="exportAllBtn" disabled>
         Export All
       </button>
+      </div>
     </div>
   </div>
-  
+
   <div class="container">
     <div class="conversations-table">
       <div id="tableContent">

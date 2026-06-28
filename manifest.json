@@ -1,8 +1,9 @@
 {
     "manifest_version": 3,
     "name": "Claude Conversation Exporter",
-    "version": "1.0.0",
-    "description": "Export your Claude.ai conversations with full message history",
+    "version": "1.1.0",
+    "version_name": "1.1.0 — LINE bubble integration",
+    "description": "Export your Claude.ai conversations with full message history. LINE-style HTML, thinking-chain, full-text search, live preview.",
       "permissions": [
     "activeTab",
     "storage",

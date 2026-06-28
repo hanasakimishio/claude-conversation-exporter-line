@@ -65,17 +65,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadOrgId();
   await loadConversations();
   setupEventListeners();
-  // If the user previously had full-text enabled, restore that state and run an
-  // incremental refresh (only fetch conversations whose updated_at moved).
-  if (fullTextCache.size > 0) {
-    fullTextEnabled = true;
-    document.getElementById('fulltextToggle').checked = true;
-    updateFullTextStatus();
-    // Fire-and-forget incremental refresh; don't block initial render.
-    enableFullText({ rebuild: false, silent: true });
-  } else {
-    updateFullTextStatus();
-  }
+  // Full-text search is always opt-in on each page load — even if a cache from
+  // a previous session is present, the user must re-tick the toggle to enable it.
+  // (When they do, enableFullText reuses the cache instantly if still complete,
+  // or runs an incremental refresh for any new / changed conversations.)
+  updateFullTextStatus();
 });
 
 // Infer model for conversations with null model based on date

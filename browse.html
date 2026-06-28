@@ -59,6 +59,13 @@
       color: #666;
       padding: 0 6px;
     }
+    .fulltext-hint {
+      font-size: 11px;
+      color: #999;
+      padding: 4px 6px 0;
+      line-height: 1.55;
+      max-width: 560px;
+    }
     .fulltext-toggle {
       display: inline-flex;
       align-items: center;
@@ -470,6 +477,9 @@
           <span class="fulltext-status" id="fulltextStatus">未启用 · 仅搜索标题</span>
           <button class="fulltext-action" id="fulltextRebuild" hidden>重建索引</button>
           <button class="fulltext-action" id="fulltextCancel" hidden>取消</button>
+        </div>
+        <div class="fulltext-hint">
+          需要按对话内容搜索时，勾选「全文搜索」预载所有对话（首次较慢，结果会缓存到本地）；未勾选时只搜索对话标题。
         </div>
       </div>
 
